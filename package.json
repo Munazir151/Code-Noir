@@ -1,0 +1,40 @@
+{
+  "name": "codenoir",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "clean:next": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }; if (Test-Path tsconfig.tsbuildinfo) { Remove-Item -Force tsconfig.tsbuildinfo }\"",
+    "dev:reset": "npm run clean:next && npm run dev",
+    "build:reset": "npm run clean:next && npm run build"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.6.0",
+    "@types/three": "^0.184.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.3.0",
+    "howler": "^2.2.4",
+    "lucide-react": "^0.395.0",
+    "monaco-editor": "^0.50.0",
+    "next": "14.2.5",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwind-merge": "^2.3.0",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/howler": "^2.2.11",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
