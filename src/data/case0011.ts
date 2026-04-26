@@ -477,7 +477,7 @@ Payload:
   "cwd": "/Users/jamespark/devcorp/devcorp-api",
   "timestamp": "2024-04-15T10:22:14.847Z",
   "env": {
-    ".env": "DATABASE_URL=postgresql://admin:P@ssw0rd123@db.devcorp.io:5432/prod\\nJWT_SECRET=super-secret-jwt-key-do-not-share\\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\\nSTRIPE_SECRET_KEY=sk_live_4eC39HqLyjWDarjtT1zdp7dc"
+    ".env": "DATABASE_URL=postgresql://admin:P@ssw0rd123@db.devcorp.io:5432/prod\\nJWT_SECRET=super-secret-jwt-key-do-not-share\\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\\nSTRIPE_SECRET_KEY=sk_test_FAKEFAKEFAKEFAKEFAKE"
   },
   "processEnv": {
     "USER": "jamespark",
