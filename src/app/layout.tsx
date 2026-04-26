@@ -3,12 +3,20 @@ import "./globals.css";
 import HUDOverlay from "@/components/HUDOverlay";
 
 export const metadata: Metadata = {
-  title: "Code Noir — Case 0047",
-  description: "A murder mystery hidden in the code. Can you solve it?",
+  title: {
+    default: "Code Noir",
+    template: "%s | Code Noir",
+  },
+  description: "A noir detective game played inside a code editor.",
   openGraph: {
-    title: "Code Noir — Case 0047",
+    title: "Code Noir",
     description: "A noir detective game played inside a code editor.",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Code Noir",
+    description: "A noir detective game played inside a code editor.",
   },
 };
 
