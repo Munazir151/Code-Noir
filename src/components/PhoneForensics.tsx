@@ -9,14 +9,29 @@ interface PhoneForensicsProps {
   isOpen: boolean;
   onClose: () => void;
   correctPin?: string;
+    pinHint?: string;
   onSuccess: () => void;
 }
 
-export default function PhoneForensics({ isOpen, onClose, correctPin = "4407", onSuccess }: PhoneForensicsProps) {
+export default function PhoneForensics({ isOpen, onClose, correctPin = "4407", pinHint, onSuccess }: PhoneForensicsProps) {
   const [pin, setPin] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState("Messages");
   const [error, setError] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setPin("");
+        setError(false);
+        setIsUnlocked(false);
+        setActiveTab("Messages");
+    }, [isOpen, correctPin]);
+
+    const handleDelete = () => {
+        if (pin.length === 0) return;
+        setPin((prev) => prev.slice(0, -1));
+        if (error) setError(false);
+    };
 
   const handleKeyPress = (num: string) => {
     if (pin.length < 4) {
@@ -91,17 +106,32 @@ export default function PhoneForensics({ isOpen, onClose, correctPin = "4407", o
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-6">
-                            {["1","2","3","4","5","6","7","8","9","*","0","#"].map(num => (
+                                                <div className="grid grid-cols-3 gap-6">
+                                                        {["1","2","3","4","5","6","7","8","9","","0","del"].map(num => (
                                 <button
                                     key={num}
-                                    onClick={() => handleKeyPress(num)}
+                                                                        onClick={() => {
+                                                                            if (num === "") return;
+                                                                            if (num === "del") {
+                                                                                handleDelete();
+                                                                                return;
+                                                                            }
+                                                                            handleKeyPress(num);
+                                                                        }}
                                     className="w-14 h-14 rounded-full bg-white/5 text-white font-mono text-xl flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all outline-none"
                                 >
-                                    {num}
+                                                                        {num === "del" ? <Delete size={18} /> : num}
                                 </button>
                             ))}
                         </div>
+                                                {error && (
+                                                    <p className="mt-4 text-[10px] font-mono text-noir-red uppercase tracking-wider">Incorrect PIN. Retry.</p>
+                                                )}
+                                                {pinHint && !isUnlocked && (
+                                                    <p className="mt-2 text-[9px] font-mono text-noir-amber/80 uppercase tracking-wider text-center">
+                                                        Hint: {pinHint}
+                                                    </p>
+                                                )}
                         <p className="mt-8 text-[9px] font-mono text-white/20 uppercase tracking-widest italic">Encrypted User_Data_Partition</p>
                     </div>
                 ) : (

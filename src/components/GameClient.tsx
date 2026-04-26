@@ -16,6 +16,7 @@ import DnaLab from "./DnaLab";
 import PhoneForensics from "./PhoneForensics";
 import IpTrace from "./IpTrace";
 import CaseStrengthMeter from "./CaseStrengthMeter";
+import NarrativeEnginePanel from "./NarrativeEnginePanel";
 import {
   Terminal as TerminalIcon,
   Fingerprint,
@@ -55,6 +56,10 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { speak } from "@/lib/elevenlabs";
+import {
+  generateInvestigationReport,
+  type SimulatorFinding,
+} from "@/lib/investigationEngine";
 
 type Phase = "select" | "intro" | "investigation" | "verdict";
 type SidePanel = "files" | "clues" | "forensics";
@@ -397,6 +402,7 @@ export default function GameClient() {
     voice: false,
     ip: false,
   });
+  const [simulatorFindings, setSimulatorFindings] = useState<SimulatorFinding[]>([]);
 
   const getCaseStrength = () => {
     const values = [
@@ -449,6 +455,7 @@ export default function GameClient() {
     setShowCameraFeed(false);
     setIncomingCallVisible(false);
     setEvidencePins([]);
+    setSimulatorFindings([]);
     callWhisperRef.current = false;
     if (callTimerRef.current !== null) {
       window.clearTimeout(callTimerRef.current);
@@ -738,6 +745,7 @@ export default function GameClient() {
     setCrimeScenePhotoId(null);
     setShowCameraFeed(false);
     setIncomingCallVisible(false);
+    setSimulatorFindings([]);
     onboardingDone.current = false;
     callWhisperRef.current = false;
     if (callTimerRef.current !== null) {
@@ -746,6 +754,48 @@ export default function GameClient() {
     }
     setPhase("intro");
   }, []);
+
+  const registerSimulatorFinding = useCallback((finding: SimulatorFinding) => {
+    setSimulatorFindings((prev) => {
+      if (prev.some((entry) => entry.id === finding.id)) {
+        return prev;
+      }
+      return [...prev, finding];
+    });
+  }, []);
+
+  const sanitizeForPublicBrief = useCallback((text: string) => {
+    return text
+      .replace(/\b(?:AKIA|ASIA)[A-Z0-9]{12,}\b/g, "[REDACTED_ACCESS_KEY]")
+      .replace(/\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/g, "[REDACTED_API_KEY]")
+      .replace(/\b(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{20,})\b/g, "[REDACTED_WALLET]")
+      .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "[REDACTED_IP]");
+  }, []);
+
+  const handleShareBrief = useCallback((payload: {
+    clueIds: string[];
+    ranking: Array<{ id: string; confidence: number }>;
+    summary: string;
+    safeMode: boolean;
+  }) => {
+    if (!selectedCase) return;
+
+    const clueIds = payload.safeMode
+      ? payload.clueIds.filter((id) => !/key|wallet|ip|token|secret/i.test(id))
+      : payload.clueIds;
+    const summary = payload.safeMode
+      ? sanitizeForPublicBrief(payload.summary)
+      : payload.summary;
+
+    const params = new URLSearchParams({
+      clues: clueIds.join(","),
+      ranking: payload.ranking.map((item) => `${item.id}:${item.confidence}`).join(","),
+      summary,
+      safe: payload.safeMode ? "1" : "0",
+    });
+
+    window.open(`/brief/${selectedCase.id}?${params.toString()}`, "_blank");
+  }, [sanitizeForPublicBrief, selectedCase]);
 
   const handleViewCaseArchive = useCallback(() => {
     if (!selectedCase) return;
@@ -851,6 +901,16 @@ export default function GameClient() {
 
   const activeFile = caseFiles.find((f: any) => f.id === activeFileId);
 
+  const explainableVerdict = selectedCase
+    ? generateInvestigationReport(
+      selectedCase,
+      discoveredClues,
+      evidencePins,
+      simulatorCriteria,
+      simulatorFindings,
+    ).suspectRanking
+    : [];
+
   useEffect(() => {
     if (!activeFileId) return;
 
@@ -915,6 +975,7 @@ export default function GameClient() {
           caseData={selectedCase}
           accusedId={accusedId}
           discoveredClues={discoveredClues}
+          explainableVerdict={explainableVerdict}
           onRestart={handleRestart}
           onCaseSelect={handleViewCaseArchive}
           solvedCaseIds={solvedCaseIds}
@@ -1121,6 +1182,15 @@ export default function GameClient() {
                         </button>
                       ))}
                     </div>
+
+                    <NarrativeEnginePanel
+                      caseData={selectedCase}
+                      discoveredClues={discoveredClues}
+                      evidencePins={evidencePins}
+                      simulatorCriteria={simulatorCriteria}
+                      simulatorFindings={simulatorFindings}
+                      onShareBrief={handleShareBrief}
+                    />
                   </div>
                 ) : (
                   <CluesPanel
@@ -1333,6 +1403,11 @@ export default function GameClient() {
         onSecretCommand={(cmd) => {
           setSimulatorCriteria(prev => ({ ...prev, terminal: true }));
           setDiscoveredClues(prev => new Set(prev).add(`secret_${cmd}`));
+          registerSimulatorFinding({
+            id: `terminal-${cmd}`,
+            title: "Terminal Secret Recovered",
+            detail: `Command '${cmd}' exposed a hidden forensic trace in shell history.`,
+          });
         }}
       />
       <FingerprintScanner
@@ -1341,6 +1416,11 @@ export default function GameClient() {
         identityMatch={selectedCase?.forensicData.fingerprintMatch}
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, fingerprints: true }));
+          registerSimulatorFinding({
+            id: "fingerprint-match",
+            title: "Fingerprint Correlation",
+            detail: `Scanner matched ridge pattern to ${selectedCase?.forensicData.fingerprintMatch ?? "known identity"}.`,
+          });
           setFingerprintOpen(false);
         }}
       />
@@ -1351,6 +1431,11 @@ export default function GameClient() {
         finalResult={selectedCase?.correctSuspectId === "jordan" ? "jordan@techsprout.io" : "incognito@tor.network"}
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, btc: true }));
+          registerSimulatorFinding({
+            id: "btc-trace",
+            title: "Crypto Flow Trace",
+            detail: `Funds route converged on ${selectedCase?.forensicData.btcTarget ?? "target wallet"}.`,
+          });
           setBtcOpen(false);
         }}
       />
@@ -1360,6 +1445,11 @@ export default function GameClient() {
         targets={selectedCase?.forensicData.voiceTargets}
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, voice: true }));
+          registerSimulatorFinding({
+            id: "voice-stress",
+            title: "Voice Stress Pattern",
+            detail: "Interview waveform indicates elevated stress in high-risk answer segments.",
+          });
           setVoiceOpen(false);
         }}
       />
@@ -1369,15 +1459,58 @@ export default function GameClient() {
         matchText={selectedCase?.forensicData.dnaMatch}
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, dna: true }));
+          registerSimulatorFinding({
+            id: "dna-lab",
+            title: "DNA Lab Match",
+            detail: selectedCase?.forensicData.dnaMatch ?? "DNA evidence linked to suspect profile.",
+          });
           setDnaOpen(false);
         }}
       />
       <PhoneForensics
         isOpen={phoneOpen}
         onClose={() => setPhoneOpen(false)}
-        correctPin={selectedCase?.forensicData.phonePin || "0000"}
+        correctPin={
+          {
+            "0001": "1522",
+            "0002": "0217",
+            "0003": "2359",
+            "0004": "1200",
+            "0005": "1147",
+            "0006": "1642",
+            "0007": "2332",
+            "0008": "2218",
+            "0009": "1018",
+            "0010": "1122",
+            "0011": "1005",
+            "0012": "0345",
+            "0047": "4407",
+          }[selectedCase?.id ?? ""] ?? "0000"
+        }
+        pinHint={
+          {
+            "0001": "Check the git_history.log for the 15:22:47 commit timestamp",
+            "0002": "Check the auth.log for the 02:17:15 login timestamp",
+            "0003": "Check the auth.log for the 23:59:00 system termination window",
+            "0004": "Check the sales_receipt.pdf for the first 4 digits of the $12,000 transfer",
+            "0005": "Check the server.log for the 11:47:33 file deletion event",
+            "0006": "Check the contractor_offboarding.md for the 16:42 download timestamp",
+            "0007": "Check the first Slack message timestamp (23:32) in the investigation logs",
+            "0008": "Check the npm_audit.log for the Version 1.0.3 publish time (22:18)",
+            "0009": "Check the incident_timeline.md for the 10:18:02 monitoring alert",
+            "0010": "Check the darkweb_listing.txt for the 11:22:03 listing timestamp",
+            "0011": "Check the pr_review.md for James Park's 10:05:07 approval time",
+            "0012": "Check the ransom_note.txt for the 03:45:00 encryption start time",
+            "0047": "Check the victim_profile.js for the localMasterPin value",
+          }[selectedCase?.id ?? ""] ?? "The PIN is hidden in the case evidence trail"
+        }
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, phone: true }));
+          registerSimulatorFinding({
+            id: "phone-forensics",
+            title: "Phone Forensics Unlock",
+            detail: "Recovered messages and call records align with covert coordination timeline.",
+          });
           setPhoneOpen(false);
         }}
       />
@@ -1388,6 +1521,11 @@ export default function GameClient() {
         targetLabel="Remote Access Point"
         onSuccess={() => {
           setSimulatorCriteria(prev => ({ ...prev, ip: true }));
+          registerSimulatorFinding({
+            id: "ip-trace",
+            title: "IP Trace Completed",
+            detail: `Signal chain terminated at ${selectedCase?.forensicData.ipTarget ?? "unknown endpoint"}.`,
+          });
           setIpOpen(false);
         }}
       />

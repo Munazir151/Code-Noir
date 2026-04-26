@@ -388,7 +388,7 @@ DarkCrypt Ransomware Group
 
 SECURITY TEAM NOTES (Added during investigation):
 
-Ransom note appeared: December 12, 2024 at 3:47 AM
+Ransom note appeared: December 12, 2024 at 03:45 AM
 Payment authorized by CEO: December 12, 2024 at 5:00 PM
 Payment sent: December 12, 2024 at 5:23 PM (5 BTC)
 Decryption key received: December 13, 2024 at 1:30 AM

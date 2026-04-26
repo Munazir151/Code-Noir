@@ -14,10 +14,20 @@ import { ALL_CASES } from "@/data/cases";
 import { speak, stopSpeaking } from "@/lib/elevenlabs";
 import { useEffect, useRef } from "react";
 
+interface ExplainableSuspect {
+  id: string;
+  name: string;
+  confidence: number;
+  evidenceFor: string[];
+  evidenceAgainst: string[];
+  missingEvidence: string[];
+}
+
 interface VerdictScreenProps {
   caseData: FullCase;
   accusedId: string;
   discoveredClues: Set<string>;
+  explainableVerdict?: ExplainableSuspect[];
   onRestart: () => void;
   onCaseSelect: () => void;
   solvedCaseIds?: Set<string>;
@@ -30,6 +40,7 @@ export default function VerdictScreen({
   caseData,
   accusedId,
   discoveredClues,
+  explainableVerdict = [],
   onRestart,
   onCaseSelect,
   solvedCaseIds = new Set(),
@@ -210,6 +221,46 @@ export default function VerdictScreen({
                 </p>
                 <p className="text-noir-text-dim font-mono text-xs leading-relaxed">
                   {term.definition}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen size={16} className="text-noir-amber" />
+            <h3 className="text-noir-amber font-mono text-sm font-bold tracking-wider uppercase">
+              Explainable Verdict Mode
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {explainableVerdict.map((entry) => (
+              <div
+                key={entry.id}
+                className="border border-noir-border bg-noir-panel rounded-sm p-3"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-noir-text text-xs font-mono font-bold uppercase tracking-wider">
+                    {entry.name}
+                  </p>
+                  <p className="text-noir-amber text-xs font-mono font-bold">
+                    {entry.confidence}%
+                  </p>
+                </div>
+                <p className="text-noir-text-dim font-mono text-xs mb-1">
+                  Evidence For: {entry.evidenceFor.length > 0 ? entry.evidenceFor.join(", ") : "No direct supporting evidence."}
+                </p>
+                <p className="text-noir-text-dim font-mono text-xs mb-1">
+                  Evidence Against: {entry.evidenceAgainst.length > 0 ? entry.evidenceAgainst.join(", ") : "No contradictory evidence."}
+                </p>
+                <p className="text-noir-text-dim font-mono text-xs">
+                  Missing Evidence: {entry.missingEvidence.length > 0 ? entry.missingEvidence.join(", ") : "Critical evidence set complete."}
                 </p>
               </div>
             ))}
