@@ -280,8 +280,7 @@ Code Noir is released under the **MIT License** - see [LICENSE](LICENSE) file fo
 
 - **Issues:** Use GitHub Issues for bug reports
 - **Discussions:** GitHub Discussions for feature requests
-- **Email:** dev@codenoir.local
-- **Twitter:** [@CodeNoirGame](https://twitter.com/codenoir)
+- **Email:** munazir9741@gmail.com
 
 ---
 
